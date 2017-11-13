@@ -1,0 +1,55 @@
+
+	SELECT 
+				Rapor.Barkod,
+				Rapor.Stok_Kodu,
+				Rapor.Stok_Adi,
+				Round(SUM(Fiili_Stok),4) AS Fiili_Stok,
+				Round(SUM(Sistem_Stok),4) AS Sistem_Stok,
+				Round(SUM(Stok_Farki),4) as Stok_Farki,
+				'' Lokasyonlar,
+				Round(AVG(Rapor.Birim_Fiyati),4) Birim_Fiyati,
+				Round(SUM(Fiili_Maliyet),4) as Fiili_Maliyet,
+				Round(SUM(Sistemsel_Maliyet),4) as Sistem_Maliyeti,
+				Round(SUM(Tutarsal_Fark),4) Tutarsal_Fark 
+	from (
+				select 
+						MAGAZASTOK.BARKOD,
+						ISNULL(MAGAZASTOK.URUN_AD,'Kayıtsız Urun') Stok_Adi,
+						ISNULL(MAGAZASTOK.STOKKODU,'') Stok_Kodu,
+						0 as Fiili_Stok,
+						MIKTAR AS Sistem_Stok,
+						0-MIKTAR as Stok_Farki,
+						CONVERT(FLOAT,ISNULL(MAGAZASTOK.FIYAT1,0)) AS Birim_Fiyati,
+						0 Fiili_Maliyet,
+						MIKTAR*CONVERT(FLOAT,ISNULL(MAGAZASTOK.FIYAT1,0)) as Sistemsel_Maliyet,
+						CONVERT(FLOAT,ISNULL(MAGAZASTOK.FIYAT1,0))*(0-MIKTAR) AS Tutarsal_Fark 
+				from 
+						F9M7ADMIN_MAGAZASTOK MAGAZASTOK  
+				WHERE 
+						MAGAZASTOK.MAGAZAID=5 AND 
+						MAGAZASTOK.SAYIMID=20 AND 
+						ISNULL(MAGAZASTOK.TYPE,0)=0 
+				UNION ALL 
+						select SS.URUN_BARKOD AS BARKOD,
+								ISNULL(SS.URUN_AD,'Kayıtsız Urun') Stok_Adi,
+								ISNULL(SS.STOKKODU,'') Stok_Kodu,
+								SS.MIKTAR as Fiili_Stok,
+								0 AS Sistem_Stok,
+								SS.MIKTAR-0 as Stok_Farki,
+								CONVERT(FLOAT,ISNULL(SS.FIYAT1,0)) AS Birim_Fiyati,
+								SS.MIKTAR*CONVERT(FLOAT,ISNULL(SS.FIYAT1,0)) Fiili_Maliyet,
+								0 as Sistemsel_Maliyet,
+								CONVERT(FLOAT,ISNULL(SS.FIYAT1,0))*(SS.MIKTAR-0) AS Tutarsal_Fark 
+						from 
+								F9M7ADMIN_SAYIMSATIR SS 
+								JOIN F9M7ADMIN_SAYIMBASLIK SB ON SB.ID=SS.BASLIKID 
+								JOIN F9M7ADMIN_BOLUMLER BL ON BL.ID=SB.BOLUMID  
+						WHERE 
+								SB.MAGAZAID=5 AND 
+								SB.SAYIMID=20 AND 
+								SB.DURUM=1   
+						) as RAPOR 
+						GROUP BY
+						BARKOD,
+						Stok_Adi,
+						Stok_Kodu
